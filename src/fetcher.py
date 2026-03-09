@@ -1,107 +1,125 @@
 """
 JR西日本の遅延情報取得モジュール
 
-JR西日本の列車運行情報ページをスクレイピングして
-遅延が発生している路線IDのセットを返す。
+JR西日本の非公式JSON APIを使って遅延（運行障害）が発生している
+路線IDのセットを返す。
+
+APIベースURL: https://www.train-guide.westjr.co.jp/api/v3/
+参考: https://qiita.com/k_kado__j_ichi/items/7081bc62618bef32eb0e
 """
 
 from __future__ import annotations
 
+import logging
+
 import requests
-from bs4 import BeautifulSoup
 
-# JR西日本 列車運行情報ページ
-TRAIN_INFO_URL = "https://www.jr-odekake.net/railroad/train_info/index.html"
+logger = logging.getLogger(__name__)
 
-# Webサイト上の路線名 → 内部ID のマッピング
-LINE_NAME_TO_ID: dict[str, str] = {
-    "山陽新幹線": "sanyo-shinkansen",
-    "JR京都線": "kyoto-kobe",
-    "JR神戸線": "kyoto-kobe",
-    "大阪環状線": "osaka-loop",
-    "学研都市線": "gakkentoshi",
-    "おおさか東線": "osaka-higashi",
-    "大和路線": "yamatoji",
-    "阪和線": "hanwa",
-    "きのくに線": "kinokuni",
-    "湖西線": "kosei",
-    "びわこ線": "biwako",
-    "北陸線": "hokuriku",
-    "山陰線": "sanin",
-    "播但線": "bantan",
-    "加古川線": "kakogawa",
-    "姫新線": "hishin",
-    "赤穂線": "ako",
-    "境線": "sakaiminato",
-    "伯備線": "hakubi",
-    "芸備線": "geibi",
-    "木次線": "kisuki",
-    "山口線": "yamaguchi",
-    "宇野みなと線": "uno-minato",
-    "本四備讃線": "seto-ohashi",
-    "瀬戸大橋線": "seto-ohashi",
-    "津山線": "tsuyama",
-    "吉備線": "kibi",
-    "因美線": "inbi",
-    "福塩線": "fukuen",
-    "可部線": "kabe",
-    "山陽線": "sanyo",
-    "呉線": "kure",
-    "岩徳線": "iwatoku",
-    "小野田線": "onoda",
-    "宇部線": "ube",
-    "和歌山線": "wakayama",
-    "桜井線": "sakurai",
-    "草津線": "kusatsu",
-    "関西線": "kansai",
-    "福知山線": "fukuchiyama",
-    "嵯峨野線": "sagano",
-}
+BASE_URL = "https://www.train-guide.westjr.co.jp/api/v3"
+
+# 取得対象エリア
+# area_{AREA}_trafficinfo.json / area_{AREA}_master.json に対応
+AREAS = ["kinki", "chugoku", "hokuriku", "shinkansen"]
 
 
 def fetch_delayed_lines() -> set[str]:
     """
-    JR西日本Webサイトから遅延中の路線IDセットを取得する。
+    各エリアの trafficinfo API から遅延・運行障害が発生している
+    路線IDのセットを取得する。
+
+    JR西日本は運行に支障が生じた路線を trafficinfo の `lines` キーに格納する。
+    `lines` が空の場合は全路線平常運転。
 
     Returns:
-        遅延が発生している路線IDのセット (例: {"kyoto-kobe", "osaka-loop"})
+        遅延が発生している路線IDのセット (例: {"kobesanyo", "bantan"})
 
     Raises:
         requests.RequestException: ネットワークエラー時
     """
-    html = _fetch_html(TRAIN_INFO_URL)
-    return _parse_delayed_lines(html)
+    delayed: set[str] = set()
+
+    for area in AREAS:
+        try:
+            area_delayed = _fetch_area_trafficinfo(area)
+            delayed |= area_delayed
+            logger.debug("area=%s delayed_lines=%s", area, area_delayed)
+        except requests.HTTPError as e:
+            # エリアによってはエンドポイントが存在しない場合があるためスキップ
+            logger.warning("area=%s trafficinfo取得失敗: %s", area, e)
+
+    return delayed
 
 
-def _fetch_html(url: str) -> str:
-    """指定URLのHTMLを取得する。"""
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (compatible; JR-West-Delay-Counter/1.0)"
-        )
+def fetch_all_line_ids() -> list[dict[str, str]]:
+    """
+    各エリアの master API から全路線情報（id・name）のリストを取得する。
+    state.yaml の初回初期化時に使用する。
+
+    Returns:
+        [{"id": "kobesanyo", "name": "JR神戸線・山陽線"}, ...]
+
+    Raises:
+        requests.RequestException: ネットワークエラー時
+    """
+    lines: list[dict[str, str]] = []
+    seen_ids: set[str] = set()
+
+    for area in AREAS:
+        try:
+            area_lines = _fetch_area_master(area)
+            for line in area_lines:
+                if line["id"] not in seen_ids:
+                    lines.append(line)
+                    seen_ids.add(line["id"])
+        except requests.HTTPError as e:
+            logger.warning("area=%s master取得失敗: %s", area, e)
+
+    return lines
+
+
+# ---------------------------------------------------------------------------
+# 内部実装
+# ---------------------------------------------------------------------------
+
+def _fetch_area_trafficinfo(area: str) -> set[str]:
+    """
+    指定エリアの trafficinfo JSON から遅延路線IDセットを返す。
+
+    レスポンス例 (平常時): {"lines": {}, "express": {}}
+    レスポンス例 (障害時): {"lines": {"bantan": {"info": "遅延", ...}}, "express": {}}
+
+    `lines` の各キーが遅延発生路線のID。
+    """
+    url = f"{BASE_URL}/area_{area}_trafficinfo.json"
+    data = _get_json(url)
+    return set(data.get("lines", {}).keys())
+
+
+def _fetch_area_master(area: str) -> list[dict[str, str]]:
+    """
+    指定エリアの master JSON から路線情報リストを返す。
+
+    レスポンス例:
+    {
+        "line": [
+            {"id": "kobesanyo", "name": "JR神戸線・山陽線", ...},
+            ...
+        ]
     }
-    response = requests.get(url, headers=headers, timeout=30)
+    """
+    url = f"{BASE_URL}/area_{area}_master.json"
+    data = _get_json(url)
+
+    lines = []
+    for entry in data.get("line", []):
+        if "id" in entry and "name" in entry:
+            lines.append({"id": entry["id"], "name": entry["name"]})
+    return lines
+
+
+def _get_json(url: str) -> dict:
+    """GET リクエストを送ってJSONをデコードして返す。"""
+    response = requests.get(url, timeout=30)
     response.raise_for_status()
-    response.encoding = response.apparent_encoding
-    return response.text
-
-
-def _parse_delayed_lines(html: str) -> set[str]:
-    """
-    HTMLをパースして遅延中の路線IDセットを返す。
-
-    TODO: JR西日本サイトの実際のHTML構造に合わせて実装する。
-          現在はスタブ実装。
-    """
-    soup = BeautifulSoup(html, "html.parser")
-    delayed_ids: set[str] = set()
-
-    # NOTE: 実際のHTML構造を確認してセレクタを調整する
-    # 想定: 遅延中の路線名が特定のCSSクラスの要素に含まれている
-    for element in soup.select(".train-info-delay, .delay-line"):
-        line_name = element.get_text(strip=True)
-        for key, line_id in LINE_NAME_TO_ID.items():
-            if key in line_name:
-                delayed_ids.add(line_id)
-
-    return delayed_ids
+    return response.json()

@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from storage import AppState, LineState, load_state, save_state
+from storage import AppState, LineState, build_initial_state, load_state, save_state
 
 
 class TestLoadState:
@@ -68,6 +68,27 @@ class TestSaveState:
 
     def test_ディレクトリが存在しない場合も保存できる(self, tmp_path):
         yaml_path = tmp_path / "nested" / "dir" / "state.yaml"
-        state = AppState(lines=[LineState(id="kyoto-kobe", name="JR京都線・神戸線")])
+        state = AppState(lines=[LineState(id="kobesanyo", name="JR神戸線・山陽線")])
         save_state(yaml_path, state)
         assert yaml_path.exists()
+
+
+class TestBuildInitialState:
+    def test_指定路線リストで初期化(self):
+        line_defs = [
+            {"id": "kobesanyo", "name": "JR神戸線・山陽線"},
+            {"id": "kyoto", "name": "JR京都線"},
+        ]
+        state = build_initial_state(line_defs)
+        assert len(state.lines) == 2
+        assert all(l.consecutive_days == 0 for l in state.lines)
+        assert all(l.start_date is None for l in state.lines)
+        assert state.last_updated is None
+
+    def test_重複IDを除去する(self):
+        line_defs = [
+            {"id": "kobesanyo", "name": "JR神戸線・山陽線"},
+            {"id": "kobesanyo", "name": "JR神戸線・山陽線（重複）"},
+        ]
+        state = build_initial_state(line_defs)
+        assert len(state.lines) == 1
