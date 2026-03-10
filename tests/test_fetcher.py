@@ -1,127 +1,100 @@
-"""fetcher.py のユニットテスト"""
+"""fetcher.py のユニットテスト
+
+NOTE: _parse_delayed_lines のHTMLパース部分は未実装（TODO）のため
+      実際のページ構造が確認できてから追加する。
+      ここでは実装済みのユーティリティ関数をテストする。
+"""
 
 import sys
+from datetime import date
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from fetcher import (
-    AREAS,
-    _fetch_area_master,
-    _fetch_area_trafficinfo,
-    fetch_all_line_ids,
+    ROUTE_NAME_TO_ID,
+    _extract_route_name,
+    _parse_date_text,
     fetch_delayed_lines,
 )
 
 
-class TestFetchAreaTrafficinfo:
-    def test_平常時_空セットを返す(self):
-        with patch("fetcher._get_json") as mock:
-            mock.return_value = {"lines": {}, "express": {}}
-            result = _fetch_area_trafficinfo("kinki")
-        assert result == set()
+class TestParseDateText:
+    def test_月日形式(self):
+        with patch("fetcher.date") as mock_date:
+            mock_date.today.return_value = date(2024, 3, 10)
+            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+            result = _parse_date_text("3月9日（土）")
+        assert result == date(2024, 3, 9)
 
-    def test_遅延あり_路線IDセットを返す(self):
-        with patch("fetcher._get_json") as mock:
-            mock.return_value = {
-                "lines": {
-                    "kobesanyo": {"info": "遅延", "detail": "..."},
-                    "bantan": {"info": "運転見合わせ", "detail": "..."},
-                },
-                "express": {},
-            }
-            result = _fetch_area_trafficinfo("kinki")
-        assert result == {"kobesanyo", "bantan"}
+    def test_年月日形式(self):
+        result = _parse_date_text("2024年3月9日")
+        assert result == date(2024, 3, 9)
 
-    def test_正しいURLを呼ぶ(self):
-        with patch("fetcher._get_json") as mock:
-            mock.return_value = {"lines": {}}
-            _fetch_area_trafficinfo("chugoku")
-        mock.assert_called_once_with(
-            "https://www.train-guide.westjr.co.jp/api/v3/area_chugoku_trafficinfo.json"
-        )
+    def test_年月日形式_テキスト混在(self):
+        result = _parse_date_text("更新日：2024年3月9日（土）")
+        assert result == date(2024, 3, 9)
+
+    def test_年末年始_1月に12月の日付(self):
+        with patch("fetcher.date") as mock_date:
+            mock_date.today.return_value = date(2025, 1, 1)
+            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+            result = _parse_date_text("12月31日（火）")
+        assert result == date(2024, 12, 31)
+
+    def test_日付なし_Noneを返す(self):
+        assert _parse_date_text("運行情報なし") is None
+
+    def test_空文字_Noneを返す(self):
+        assert _parse_date_text("") is None
 
 
-class TestFetchAreaMaster:
-    def test_路線リストを返す(self):
-        with patch("fetcher._get_json") as mock:
-            mock.return_value = {
-                "line": [
-                    {"id": "kobesanyo", "name": "JR神戸線・山陽線"},
-                    {"id": "kyoto", "name": "JR京都線"},
-                ]
-            }
-            result = _fetch_area_master("kinki")
-        assert result == [
-            {"id": "kobesanyo", "name": "JR神戸線・山陽線"},
-            {"id": "kyoto", "name": "JR京都線"},
-        ]
+class TestExtractRouteName:
+    def test_路線名を抽出(self):
+        assert _extract_route_name("【奈良線】 踏切の確認 列車の遅れ") == "奈良線"
 
-    def test_idまたはnameがない要素はスキップ(self):
-        with patch("fetcher._get_json") as mock:
-            mock.return_value = {
-                "line": [
-                    {"id": "kobesanyo", "name": "JR神戸線・山陽線"},
-                    {"id": "no-name-line"},  # name なし
-                    {"name": "no-id-line"},  # id なし
-                ]
-            }
-            result = _fetch_area_master("kinki")
-        assert len(result) == 1
-        assert result[0]["id"] == "kobesanyo"
+    def test_JRプレフィックスあり(self):
+        assert _extract_route_name("【JR京都線】 人身事故 列車の遅れ") == "JR京都線"
+
+    def test_括弧なし_Noneを返す(self):
+        assert _extract_route_name("奈良線 列車の遅れ") is None
+
+    def test_空文字_Noneを返す(self):
+        assert _extract_route_name("") is None
+
+
+class TestRouteNameToId:
+    def test_代表的な路線名が登録済み(self):
+        assert ROUTE_NAME_TO_ID["JR京都線"] == "kyoto"
+        assert ROUTE_NAME_TO_ID["大阪環状線"] == "osakaloop"
+        assert ROUTE_NAME_TO_ID["山陰線"] == "sanin"
+
+    def test_同一路線の別表記が同じIDに対応(self):
+        assert ROUTE_NAME_TO_ID["北陸線"] == ROUTE_NAME_TO_ID["琵琶湖線"]
+        assert ROUTE_NAME_TO_ID["JR神戸線"] == ROUTE_NAME_TO_ID["神戸線"]
+        assert ROUTE_NAME_TO_ID["阪和線"] == ROUTE_NAME_TO_ID["羽衣線"]
 
 
 class TestFetchDelayedLines:
-    def test_複数エリアの遅延をマージ(self):
-        def side_effect(area):
-            return {
-                "kinki": {"kobesanyo"},
-                "chugoku": {"bantan"},
-                "hokuriku": set(),
-                "shinkansen": set(),
-            }[area]
+    def test_fetch_htmlが呼ばれる(self):
+        with patch("fetcher._fetch_html", return_value="<html></html>") as mock_fetch:
+            with patch("fetcher._parse_delayed_lines", return_value=set()):
+                fetch_delayed_lines(date(2024, 3, 9))
+        mock_fetch.assert_called_once()
 
-        with patch("fetcher._fetch_area_trafficinfo", side_effect=side_effect):
-            result = fetch_delayed_lines()
-        assert result == {"kobesanyo", "bantan"}
+    def test_parse_delayed_linesにtarget_dateが渡される(self):
+        target = date(2024, 3, 9)
+        with patch("fetcher._fetch_html", return_value="<html></html>"):
+            with patch("fetcher._parse_delayed_lines", return_value=set()) as mock_parse:
+                fetch_delayed_lines(target)
+        _, called_date = mock_parse.call_args.args
+        assert called_date == target
 
-    def test_エリアのHTTPエラーはスキップ(self):
-        import requests
-
-        def side_effect(area):
-            if area == "hokuriku":
-                raise requests.HTTPError("404")
-            return set()
-
-        with patch("fetcher._fetch_area_trafficinfo", side_effect=side_effect):
-            result = fetch_delayed_lines()
-        assert isinstance(result, set)
-
-
-class TestFetchAllLineIds:
-    def test_重複IDを除去して返す(self):
-        def side_effect(area):
-            # kinki と chugoku で kobesanyo が重複
-            return {
-                "kinki": [
-                    {"id": "kobesanyo", "name": "JR神戸線・山陽線"},
-                    {"id": "kyoto", "name": "JR京都線"},
-                ],
-                "chugoku": [
-                    {"id": "kobesanyo", "name": "JR神戸線・山陽線"},
-                    {"id": "bantan", "name": "播但線"},
-                ],
-                "hokuriku": [],
-                "shinkansen": [],
-            }[area]
-
-        with patch("fetcher._fetch_area_master", side_effect=side_effect):
-            result = fetch_all_line_ids()
-
-        ids = [r["id"] for r in result]
-        assert ids.count("kobesanyo") == 1  # 重複なし
-        assert "kyoto" in ids
-        assert "bantan" in ids
+    def test_戻り値がsetである(self):
+        with patch("fetcher._fetch_html", return_value="<html></html>"):
+            with patch("fetcher._parse_delayed_lines", return_value={"kyoto", "nara"}):
+                result = fetch_delayed_lines(date(2024, 3, 9))
+        assert result == {"kyoto", "nara"}
