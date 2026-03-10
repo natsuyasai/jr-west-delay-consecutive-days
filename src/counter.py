@@ -31,25 +31,27 @@ def update_consecutive_days(
 
     for line in state.lines:
         if line.id in delayed_line_ids:
-            # 遅延あり: 連続日数を増やす
-            new_consecutive = line.consecutive_days + 1
-            new_start = line.start_date if line.start_date else target_date
+            # 遅延あり: 遅延連続日数を増やし、遅延なし連続日数をリセット
             updated_lines.append(
                 LineState(
                     id=line.id,
                     name=line.name,
-                    consecutive_days=new_consecutive,
-                    start_date=new_start,
+                    consecutive_days=line.consecutive_days + 1,
+                    start_date=line.start_date if line.start_date else target_date,
+                    no_delay_consecutive_days=0,
+                    no_delay_start_date=None,
                 )
             )
         else:
-            # 遅延なし: リセット
+            # 遅延なし: 遅延なし連続日数を増やし、遅延連続日数をリセット
             updated_lines.append(
                 LineState(
                     id=line.id,
                     name=line.name,
                     consecutive_days=0,
                     start_date=None,
+                    no_delay_consecutive_days=line.no_delay_consecutive_days + 1,
+                    no_delay_start_date=line.no_delay_start_date if line.no_delay_start_date else target_date,
                 )
             )
 

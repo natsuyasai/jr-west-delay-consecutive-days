@@ -50,6 +50,8 @@ class LineState:
     name: str
     consecutive_days: int = 0
     start_date: date | None = None
+    no_delay_consecutive_days: int = 0
+    no_delay_start_date: date | None = None
 
 
 @dataclass
@@ -78,6 +80,8 @@ def load_state(path: Path) -> AppState:
             name=line["name"],
             consecutive_days=line.get("consecutive_days", 0),
             start_date=line.get("start_date"),
+            no_delay_consecutive_days=line.get("no_delay_consecutive_days", 0),
+            no_delay_start_date=line.get("no_delay_start_date"),
         )
         for line in data.get("lines", [])
     ]
@@ -96,6 +100,8 @@ def save_state(path: Path, state: AppState) -> None:
                 "name": line.name,
                 "consecutive_days": line.consecutive_days,
                 "start_date": line.start_date,
+                "no_delay_consecutive_days": line.no_delay_consecutive_days,
+                "no_delay_start_date": line.no_delay_start_date,
             }
             for line in state.lines
         ],

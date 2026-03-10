@@ -53,8 +53,15 @@ class TestSaveState:
                     name="JR京都線",
                     consecutive_days=5,
                     start_date=date(2024, 3, 4),
+                    no_delay_consecutive_days=0,
+                    no_delay_start_date=None,
                 ),
-                LineState(id="osakaloop", name="大阪環状線"),
+                LineState(
+                    id="osakaloop",
+                    name="大阪環状線",
+                    no_delay_consecutive_days=10,
+                    no_delay_start_date=date(2024, 2, 28),
+                ),
             ],
         )
         save_state(yaml_path, original)
@@ -65,6 +72,10 @@ class TestSaveState:
         kyoto = next(l for l in loaded.lines if l.id == "kyoto")
         assert kyoto.consecutive_days == 5
         assert kyoto.start_date == date(2024, 3, 4)
+        assert kyoto.no_delay_consecutive_days == 0
+        osaka = next(l for l in loaded.lines if l.id == "osakaloop")
+        assert osaka.no_delay_consecutive_days == 10
+        assert osaka.no_delay_start_date == date(2024, 2, 28)
 
     def test_ディレクトリが存在しない場合も保存できる(self, tmp_path):
         yaml_path = tmp_path / "nested" / "dir" / "state.yaml"
