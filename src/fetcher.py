@@ -16,8 +16,8 @@ import re
 import unicodedata
 from datetime import date
 
-import requests
 from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 
 logger = logging.getLogger(__name__)
 
@@ -83,18 +83,14 @@ def fetch_delayed_lines(target_date: date) -> set[str]:
 # ---------------------------------------------------------------------------
 
 def _fetch_html(url: str) -> str:
-    """指定URLのHTMLを取得する。"""
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/120.0.0.0 Safari/537.36"
-        )
-    }
-    response = requests.get(url, headers=headers, timeout=30)
-    response.raise_for_status()
-    response.encoding = response.apparent_encoding
-    return response.text
+    """Playwright を使って JavaScript レンダリング後のHTMLを取得する。"""
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto(url, wait_until="networkidle")
+        html = page.content()
+        browser.close()
+    return html
 
 
 def _has_class_prefix(tag, prefix: str) -> bool:
