@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import re
+import unicodedata
 from datetime import date
 
 import requests
@@ -96,50 +97,69 @@ def _fetch_html(url: str) -> str:
     return response.text
 
 
+def _has_class_prefix(tag, prefix: str) -> bool:
+    """タグのクラスリストに指定プレフィックスで始まるクラスが含まれるか判定する。"""
+    return any(c.startswith(prefix) for c in tag.get("class", []))
+
+
 def _parse_delayed_lines(html: str, target_date: date) -> set[str]:
     """
     履歴ページのHTMLをパースして target_date に遅延した路線IDセットを返す。
 
-    【実装手順】
-    1. ブラウザの開発者ツール（F12）で kinki_history.html の構造を確認する
-    2. 日付グループのHTML要素・クラス名を特定する
-    3. 各インシデントリンクのHTML要素・クラス名を特定する
-    4. 以下のTODOを実際のセレクタに置き換える
+    【HTML構造】
+      role="tabpanel" + class="KinkiHistory_tabContent__*"  ← タブパネル（京阪神・和歌山・北近畿）
+        └─ div[class^="HistoryListTable_daily__"]           ← 1日分のブロック
+             ├─ div[class^="HistoryListTable_dailyDateCell__"]  日付（インシデントあり）
+             │   OR div[class^="HistoryListTable_dateCell__"]   日付（インシデントなし）
+             └─ a[href*="kinki_history_detail"]             ← インシデントリンク
 
-    【想定HTML構造（要確認）】
-      日付ヘッダー要素に「3月9日（土）」のような日付テキスト
-      その配下に <a href="kinki_history_detail.html?id=..."> が並ぶ
-      リンクテキストが「【奈良線】 踏切の確認 列車の遅れ」などの形式
-
-    【参考】
-      詳細ページ例: https://trafficinfo.westjr.co.jp/kinki_history_detail.html?id=00112599
+    クラス名は CSS Modules ハッシュを含むため、プレフィックスマッチで取得する。
+    アクセシビリティ属性 role="tabpanel" を優先セレクタとして使用する。
     """
     soup = BeautifulSoup(html, "html.parser")
     delayed_ids: set[str] = set()
 
-    # TODO: 実際のページHTML構造を開発者ツールで確認してセレクタを実装する
-    #
-    # 実装イメージ:
-    #
-    #   current_date = None
-    #   for section in soup.select("適切なセレクタ"):
-    #       # 日付ヘッダーテキストから日付をパース
-    #       date_text = section.select_one("日付要素のセレクタ").get_text(strip=True)
-    #       current_date = _parse_date_text(date_text)
-    #
-    #       if current_date != target_date:
-    #           continue
-    #
-    #       # 当日のインシデントリンクを処理
-    #       for link in section.select("インシデントリンクのセレクタ"):
-    #           title = link.get_text(strip=True)
-    #           route_name = _extract_route_name(title)
-    #           if route_name:
-    #               line_id = ROUTE_NAME_TO_ID.get(route_name)
-    #               if line_id:
-    #                   delayed_ids.add(line_id)
-    #               else:
-    #                   logger.warning("未登録の路線名: %s", route_name)
+    # アクセシビリティ属性 role="tabpanel" でタブパネルを取得し、
+    # KinkiHistory_tabContent__ プレフィックスで近畿エリアのものに絞り込む
+    tab_panels = [
+        tag for tag in soup.find_all(role="tabpanel")
+        if _has_class_prefix(tag, "KinkiHistory_tabContent__")
+    ]
+
+    for panel in tab_panels:
+        # 1日分のブロックを取得
+        daily_blocks = [
+            div for div in panel.find_all("div")
+            if _has_class_prefix(div, "HistoryListTable_daily__")
+        ]
+
+        for daily in daily_blocks:
+            # 日付セルを取得（インシデントあり: dailyDateCell__ / なし: dateCell__）
+            date_cell = next(
+                (
+                    div for div in daily.find_all("div")
+                    if _has_class_prefix(div, "HistoryListTable_dailyDateCell__")
+                    or _has_class_prefix(div, "HistoryListTable_dateCell__")
+                ),
+                None,
+            )
+            if date_cell is None:
+                continue
+
+            block_date = _parse_date_text(date_cell.get_text(strip=True))
+            if block_date != target_date:
+                continue
+
+            # 対象日のインシデントリンクを処理
+            for link in daily.find_all("a", href=lambda h: h and "kinki_history_detail" in h):
+                title = link.get_text(strip=True)
+                route_name = _extract_route_name(title)
+                if route_name:
+                    line_id = ROUTE_NAME_TO_ID.get(route_name)
+                    if line_id:
+                        delayed_ids.add(line_id)
+                    else:
+                        logger.warning("未登録の路線名: %s", route_name)
 
     return delayed_ids
 
@@ -191,4 +211,6 @@ def _extract_route_name(text: str) -> str | None:
         路線名文字列 (例: "奈良線")、見つからなければ None
     """
     m = re.search(r"【(.+?)】", text)
-    return m.group(1) if m else None
+    if m is None:
+        return None
+    return unicodedata.normalize("NFKC", m.group(1))
