@@ -61,3 +61,8 @@ def update_consecutive_days(
 def get_delayed_lines(state: AppState) -> list[LineState]:
     """連続日数が1以上の路線一覧を返す。"""
     return [line for line in state.lines if line.consecutive_days > 0]
+
+
+def get_no_delay_lines(state: AppState) -> list[LineState]:
+    """遅延なし連続日数が1以上の路線一覧を返す。"""
+    return [line for line in state.lines if line.no_delay_consecutive_days > 0]

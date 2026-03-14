@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from counter import get_delayed_lines, update_consecutive_days
+from counter import get_delayed_lines, get_no_delay_lines, update_consecutive_days
 from storage import AppState, LineState
 
 
@@ -135,3 +135,21 @@ class TestGetDelayedLines:
     def test_遅延なしは空リスト(self):
         state = _make_state([LineState(id="kyoto", name="JR京都線")])
         assert get_delayed_lines(state) == []
+
+
+class TestGetNoDelayLines:
+    def test_遅延なし路線のみ返す(self):
+        state = _make_state([
+            LineState(id="kyoto", name="JR京都線", consecutive_days=2),
+            LineState(id="osakaloop", name="大阪環状線", no_delay_consecutive_days=5),
+            LineState(id="hanwa", name="阪和線", no_delay_consecutive_days=1),
+        ])
+        result = get_no_delay_lines(state)
+        ids = [l.id for l in result]
+        assert "osakaloop" in ids
+        assert "hanwa" in ids
+        assert "kyoto" not in ids
+
+    def test_全路線遅延中は空リスト(self):
+        state = _make_state([LineState(id="kyoto", name="JR京都線", consecutive_days=3)])
+        assert get_no_delay_lines(state) == []

@@ -15,7 +15,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from counter import get_delayed_lines, update_consecutive_days
+from counter import get_delayed_lines, get_no_delay_lines, update_consecutive_days
 from fetcher import fetch_delayed_lines
 from poster import post_summary
 from storage import load_state, save_state
@@ -34,7 +34,7 @@ DEFAULT_STATE_PATH = Path(
 
 
 def main() -> None:
-    target_date = date.today() - timedelta(days=7)
+    target_date = date.today() - timedelta(days=1)
     logger.info("対象日付: %s", target_date)
 
     # 1. 状態ファイルを読み込む（存在しない場合は KINKI_LINES で初期化）
@@ -56,18 +56,17 @@ def main() -> None:
     save_state(DEFAULT_STATE_PATH, updated_state)
     logger.info("状態ファイルを保存しました")
 
-    # 5. Xに投稿（遅延路線がある場合のみ）
+    # 5. Xに投稿
     delayed_lines = get_delayed_lines(updated_state)
-    if delayed_lines:
-        logger.info("遅延中路線: %s", [l.name for l in delayed_lines])
-        try:
-            post_summary(delayed_lines, target_date)
-            logger.info("Xへの投稿が完了しました")
-        except Exception:
-            logger.exception("Xへの投稿に失敗しました")
-            sys.exit(1)
-    else:
-        logger.info("遅延路線なし。投稿をスキップします")
+    no_delay_lines = get_no_delay_lines(updated_state)
+    logger.info("遅延中路線: %s", [l.name for l in delayed_lines])
+    logger.info("遅延なし路線: %s", [l.name for l in no_delay_lines])
+    try:
+        post_summary(delayed_lines, no_delay_lines, target_date)
+        logger.info("Xへの投稿が完了しました")
+    except Exception:
+        logger.exception("Xへの投稿に失敗しました")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
