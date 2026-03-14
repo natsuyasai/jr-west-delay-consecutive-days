@@ -16,8 +16,8 @@ import logging
 import re
 from datetime import date
 
-import requests
 from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ def fetch_delayed_lines(target_date: date) -> set[str]:
         url = _BASE_HISTORY_URL.format(url_id=config["url_id"])
         try:
             html = _fetch_html(url)
-        except requests.RequestException:
+        except Exception:
             logger.exception("履歴ページ取得失敗: url_id=%s", config["url_id"])
             continue
         if _has_delay_on_date(html, target_date):
@@ -86,10 +86,14 @@ def fetch_delayed_lines(target_date: date) -> set[str]:
 # ---------------------------------------------------------------------------
 
 def _fetch_html(url: str) -> str:
-    """HTTPでHTMLを取得する。"""
-    resp = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
-    resp.raise_for_status()
-    return resp.text
+    """Playwright でJS実行後のHTMLを取得する。"""
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto(url, wait_until="networkidle")
+        html = page.content()
+        browser.close()
+    return html
 
 
 def _has_delay_on_date(html: str, target_date: date) -> bool:

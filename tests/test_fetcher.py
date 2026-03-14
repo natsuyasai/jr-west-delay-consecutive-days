@@ -142,15 +142,13 @@ class TestFetchDelayedLines:
         assert "kyoto" in result
 
     def test_取得失敗路線はスキップされる(self):
-        import requests as req
-
         call_count = 0
 
         def fake_fetch(url: str) -> str:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
-                raise req.RequestException("timeout")
+                raise OSError("timeout")
             return _make_route_history_html([("2026年3月13日", False)])
 
         with patch("fetcher._fetch_html", side_effect=fake_fetch):

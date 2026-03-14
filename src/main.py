@@ -34,7 +34,7 @@ DEFAULT_STATE_PATH = Path(
 
 
 def main() -> None:
-    target_date = date.today() - timedelta(days=1)
+    target_date = date.today() - timedelta(days=7)
     logger.info("対象日付: %s", target_date)
 
     # 1. 状態ファイルを読み込む（存在しない場合は KINKI_LINES で初期化）
