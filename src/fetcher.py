@@ -1,68 +1,62 @@
 """
-JR西日本 近畿エリア 運行情報履歴取得モジュール
+JR西日本 京阪神エリア 遅延証明書履歴取得モジュール
 
-近畿エリアの運行情報履歴ページをスクレイピングして
+各路線の履歴ページをスクレイピングして
 指定日に遅延が発生した路線IDのセットを返す。
 
 データソース:
-  https://trafficinfo.westjr.co.jp/kinki_history.html
-  過去7日分の運行情報履歴が掲載されている。
+  https://delay.trafficinfo.westjr.co.jp/pc/history/2/{url_id}
+  過去45日間の遅延証明書履歴が掲載されている。
+  日付行に <a> リンクがあれば遅延あり、なければ「掲載はありません」。
 """
 
 from __future__ import annotations
 
 import logging
 import re
-import unicodedata
 from datetime import date
 
+import requests
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright
 
 logger = logging.getLogger(__name__)
 
-HISTORY_URL = "https://trafficinfo.westjr.co.jp/kinki_history.html"
+_BASE_HISTORY_URL = "https://delay.trafficinfo.westjr.co.jp/pc/history/2/{url_id}"
 
-# 履歴ページの【】内テキスト → 内部ID マッピング
-# 同一路線が複数表記される場合はすべてのバリエーションを登録する
-ROUTE_NAME_TO_ID: dict[str, str] = {
-    "北陸線":       "hokurikubiwako",
-    "琵琶湖線":     "hokurikubiwako",
-    "びわこ線":     "hokurikubiwako",
-    "JR京都線":     "kyoto",
-    "京都線":       "kyoto",
-    "JR神戸線":     "kobesanyo",
-    "神戸線":       "kobesanyo",
-    "山陽線":       "kobesanyo",
-    "赤穂線":       "ako",
-    "湖西線":       "kosei",
-    "奈良線":       "nara",
-    "嵯峨野線":     "sagano",
-    "山陰線":       "sanin",
-    "おおさか東線": "osakahigashi",
-    "JR宝塚線":     "takarazuka",
-    "宝塚線":       "takarazuka",
-    "JR東西線":     "tozai",
-    "東西線":       "tozai",
-    "学研都市線":   "gakkentoshi",
-    "播但線":       "bantan",
-    "舞鶴線":       "maizuru",
-    "大阪環状線":   "osakaloop",
-    "JRゆめ咲線":  "yumesaki",
-    "ゆめ咲線":    "yumesaki",
-    "大和路線":     "yamatoji",
-    "阪和線":       "hanwa",
-    "羽衣線":       "hanwa",
-    "関西空港線":   "kansaikuko",
-    "草津線":       "kusatsu",
-    "福知山線":     "fukuchiyama",
-    "加古川線":     "kakogawa",
-}
+# 京阪神エリア（area=2）の路線設定
+# url_id: 履歴URLの末尾ID (/pc/history/2/{url_id})
+# internal_id: storage.py の KINKI_LINES id と一致
+KINKI_LINE_CONFIGS: list[dict] = [
+    {"url_id": 2,  "internal_id": "hokurikubiwako"},
+    {"url_id": 3,  "internal_id": "kyoto"},
+    {"url_id": 4,  "internal_id": "kobesanyo"},
+    {"url_id": 5,  "internal_id": "ako"},
+    {"url_id": 6,  "internal_id": "kosei"},
+    {"url_id": 7,  "internal_id": "kusatsu"},
+    {"url_id": 8,  "internal_id": "nara"},
+    {"url_id": 9,  "internal_id": "sagano"},
+    {"url_id": 10, "internal_id": "osakahigashi"},
+    {"url_id": 11, "internal_id": "takarazuka"},
+    {"url_id": 12, "internal_id": "tozai"},
+    {"url_id": 13, "internal_id": "gakkentoshi"},
+    {"url_id": 14, "internal_id": "osakaloop"},
+    {"url_id": 15, "internal_id": "yumesaki"},
+    {"url_id": 16, "internal_id": "yamatoji"},
+    {"url_id": 17, "internal_id": "hanwa"},
+    {"url_id": 18, "internal_id": "hanwa"},   # 羽衣線（阪和線と同一internal_id）
+    {"url_id": 19, "internal_id": "kansaikuko"},
+    {"url_id": 20, "internal_id": "wakayama"},
+    {"url_id": 21, "internal_id": "manyomahora"},
+    {"url_id": 22, "internal_id": "kansai"},
+    {"url_id": 48, "internal_id": "wadamisaki"},
+    {"url_id": 49, "internal_id": "kakogawa"},
+    {"url_id": 50, "internal_id": "hishin"},
+]
 
 
 def fetch_delayed_lines(target_date: date) -> set[str]:
     """
-    近畿エリア運行情報履歴ページから
+    京阪神エリア全路線の履歴ページを巡回し、
     target_date に遅延が発生した路線IDセットを返す。
 
     Args:
@@ -74,8 +68,17 @@ def fetch_delayed_lines(target_date: date) -> set[str]:
     Raises:
         requests.RequestException: ネットワークエラー時
     """
-    html = _fetch_html(HISTORY_URL)
-    return _parse_delayed_lines(html, target_date)
+    delayed_ids: set[str] = set()
+    for config in KINKI_LINE_CONFIGS:
+        url = _BASE_HISTORY_URL.format(url_id=config["url_id"])
+        try:
+            html = _fetch_html(url)
+        except requests.RequestException:
+            logger.exception("履歴ページ取得失敗: url_id=%s", config["url_id"])
+            continue
+        if _has_delay_on_date(html, target_date):
+            delayed_ids.add(config["internal_id"])
+    return delayed_ids
 
 
 # ---------------------------------------------------------------------------
@@ -83,81 +86,36 @@ def fetch_delayed_lines(target_date: date) -> set[str]:
 # ---------------------------------------------------------------------------
 
 def _fetch_html(url: str) -> str:
-    """Playwright を使って JavaScript レンダリング後のHTMLを取得する。"""
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        page.goto(url, wait_until="networkidle")
-        html = page.content()
-        browser.close()
-    return html
+    """HTTPでHTMLを取得する。"""
+    resp = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
+    resp.raise_for_status()
+    return resp.text
 
 
-def _has_class_prefix(tag, prefix: str) -> bool:
-    """タグのクラスリストに指定プレフィックスで始まるクラスが含まれるか判定する。"""
-    return any(c.startswith(prefix) for c in tag.get("class", []))
-
-
-def _parse_delayed_lines(html: str, target_date: date) -> set[str]:
+def _has_delay_on_date(html: str, target_date: date) -> bool:
     """
-    履歴ページのHTMLをパースして target_date に遅延した路線IDセットを返す。
+    履歴ページのHTMLをパースして target_date に遅延があったか判定する。
 
     【HTML構造】
-      role="tabpanel" + class="KinkiHistory_tabContent__*"  ← タブパネル（京阪神・和歌山・北近畿）
-        └─ div[class^="HistoryListTable_daily__"]           ← 1日分のブロック
-             ├─ div[class^="HistoryListTable_dailyDateCell__"]  日付（インシデントあり）
-             │   OR div[class^="HistoryListTable_dateCell__"]   日付（インシデントなし）
-             └─ a[href*="kinki_history_detail"]             ← インシデントリンク
+      table > tbody > tr
+        - 1列目 td: 日付テキスト (例: "3月13日(金)")
+        - 2列目以降 td: 時間帯別遅延状況
+          - 遅延あり: <a href="/pc/delay-certificate/history/...">10分</a>
+          - 遅延なし: "掲載はありません" テキスト
 
-    クラス名は CSS Modules ハッシュを含むため、プレフィックスマッチで取得する。
-    アクセシビリティ属性 role="tabpanel" を優先セレクタとして使用する。
+    target_date の行に <a> リンクが1つでもあれば True を返す。
     """
     soup = BeautifulSoup(html, "html.parser")
-    delayed_ids: set[str] = set()
-
-    # アクセシビリティ属性 role="tabpanel" でタブパネルを取得し、
-    # KinkiHistory_tabContent__ プレフィックスで近畿エリアのものに絞り込む
-    tab_panels = [
-        tag for tag in soup.find_all(role="tabpanel")
-        if _has_class_prefix(tag, "KinkiHistory_tabContent__")
-    ]
-
-    for panel in tab_panels:
-        # 1日分のブロックを取得
-        daily_blocks = [
-            div for div in panel.find_all("div")
-            if _has_class_prefix(div, "HistoryListTable_daily__")
-        ]
-
-        for daily in daily_blocks:
-            # 日付セルを取得（インシデントあり: dailyDateCell__ / なし: dateCell__）
-            date_cell = next(
-                (
-                    div for div in daily.find_all("div")
-                    if _has_class_prefix(div, "HistoryListTable_dailyDateCell__")
-                    or _has_class_prefix(div, "HistoryListTable_dateCell__")
-                ),
-                None,
-            )
-            if date_cell is None:
-                continue
-
-            block_date = _parse_date_text(date_cell.get_text(strip=True))
-            if block_date != target_date:
-                continue
-
-            # 対象日のインシデントリンクを処理
-            for link in daily.find_all("a", href=lambda h: h and "kinki_history_detail" in h):
-                title = link.get_text(strip=True)
-                route_name = _extract_route_name(title)
-                if route_name:
-                    line_id = ROUTE_NAME_TO_ID.get(route_name)
-                    if line_id:
-                        delayed_ids.add(line_id)
-                    else:
-                        logger.warning("未登録の路線名: %s", route_name)
-
-    return delayed_ids
+    for row in soup.select("table tbody tr"):
+        cells = row.find_all(["td", "th"])
+        if not cells:
+            continue
+        row_date = _parse_date_text(cells[0].get_text(strip=True))
+        if row_date is None or row_date != target_date:
+            continue
+        # 対象日の行が見つかった — 時間帯セルにリンクがあれば遅延あり
+        return any(cell.find("a") is not None for cell in cells[1:])
+    return False
 
 
 def _parse_date_text(text: str) -> date | None:
@@ -193,20 +151,3 @@ def _parse_date_text(text: str) -> date | None:
             return None
 
     return None
-
-
-def _extract_route_name(text: str) -> str | None:
-    """
-    「【奈良線】 踏切の確認 列車の遅れ」などのテキストから
-    【】内の路線名を抽出する。
-
-    Args:
-        text: インシデントタイトルテキスト
-
-    Returns:
-        路線名文字列 (例: "奈良線")、見つからなければ None
-    """
-    m = re.search(r"【(.+?)】", text)
-    if m is None:
-        return None
-    return unicodedata.normalize("NFKC", m.group(1))
