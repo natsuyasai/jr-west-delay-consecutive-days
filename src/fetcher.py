@@ -43,7 +43,7 @@ KINKI_LINE_CONFIGS: list[dict] = [
     {"url_id": 15, "internal_id": "yumesaki"},
     {"url_id": 16, "internal_id": "yamatoji"},
     {"url_id": 17, "internal_id": "hanwa"},
-    {"url_id": 18, "internal_id": "hanwa"},   # 羽衣線（阪和線と同一internal_id）
+    {"url_id": 18, "internal_id": "hagoromo"},
     {"url_id": 19, "internal_id": "kansaikuko"},
     {"url_id": 20, "internal_id": "wakayama"},
     {"url_id": 21, "internal_id": "manyomahora"},
