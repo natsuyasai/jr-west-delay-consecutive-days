@@ -6,12 +6,17 @@ X(Twitter)投稿モジュール
 
 from __future__ import annotations
 
+import asyncio
 import os
 from datetime import date
+from py_compile import main
 
 import tweepy
 
 from storage import LineState
+
+from discord import Webhook
+import aiohttp
 
 
 def post_summary(
@@ -33,7 +38,8 @@ def post_summary(
         return
 
     text = _build_post_text(delayed_lines, no_delay_lines, target_date)
-    _post_to_x(text)
+    # _post_to_x(text)
+    asyncio.run(_post_to_discord(text))
 
 
 def _build_post_text(
@@ -82,11 +88,18 @@ def _format_no_delay_line(line: LineState) -> str:
 def _post_to_x(text: str) -> None:
     """Xに投稿する。"""
     print(text)
-    # TODO テスト中なので投稿部分はコメントアウト
-    # client = tweepy.Client(
-    #     consumer_key=os.environ["X_API_KEY"],
-    #     consumer_secret=os.environ["X_API_SECRET"],
-    #     access_token=os.environ["X_ACCESS_TOKEN"],
-    #     access_token_secret=os.environ["X_ACCESS_TOKEN_SECRET"],
-    # )
-    # client.create_tweet(text=text)
+    client = tweepy.Client(
+        consumer_key=os.environ["X_API_KEY"],
+        consumer_secret=os.environ["X_API_SECRET"],
+        access_token=os.environ["X_ACCESS_TOKEN"],
+        access_token_secret=os.environ["X_ACCESS_TOKEN_SECRET"],
+    )
+    client.create_tweet(text=text)
+
+async def _post_to_discord(text: str) -> None:
+    """Discordに投稿する。"""
+
+    webhook_url = os.environ["DISCORD_WEBHOOK_URL"]
+    async with aiohttp.ClientSession() as session:
+        webhook = Webhook.from_url(webhook_url, session=session)
+        await webhook.send(text, username="Download Infomation")
