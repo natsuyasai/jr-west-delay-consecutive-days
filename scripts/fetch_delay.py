@@ -120,6 +120,8 @@ def main() -> int:
 
     line_ids = [str(l["line_id"]) for l in lines]
     streak = {lid: 0 for lid in line_ids}
+    streak_start: dict[str, str | None] = {lid: None for lid in line_ids}
+    line_first_date: dict[str, str] = {}
     prev_date: date | None = None
     per_date_output: dict[str, dict[str, dict]] = {}
 
@@ -132,10 +134,22 @@ def main() -> int:
             delayed = day_map.get(lid)
             if delayed is None:
                 continue
+            line_first_date.setdefault(lid, date_str)
             if not contiguous:
                 streak[lid] = 0
-            streak[lid] = streak[lid] + 1 if delayed else 0
-            per_date_output[date_str][lid] = {"delayed": delayed, "streak": streak[lid]}
+                streak_start[lid] = None
+            if delayed:
+                streak[lid] += 1
+                if streak[lid] == 1:
+                    streak_start[lid] = date_str
+            else:
+                streak[lid] = 0
+                streak_start[lid] = None
+            per_date_output[date_str][lid] = {
+                "delayed": delayed,
+                "streak": streak[lid],
+                "streak_start": streak_start[lid],
+            }
         prev_date = d
 
     written = 0
@@ -151,11 +165,23 @@ def main() -> int:
         written += 1
 
     latest_date = all_dates[-1]
+    latest_entries = per_date_output[latest_date]
     state = {
         "latest_date": latest_date,
         "updated_at": datetime.now(JST).isoformat(),
-        "streaks": {
-            lid: per_date_output[latest_date].get(lid, {}).get("streak", 0) for lid in line_ids
+        "streaks": {lid: latest_entries.get(lid, {}).get("streak", 0) for lid in line_ids},
+        "streak_start": {
+            lid: latest_entries.get(lid, {}).get("streak_start") for lid in line_ids
+        },
+        # True when the current streak's start date is the earliest date we
+        # have on record for that line -- i.e. we can't rule out that the
+        # streak actually began even earlier, before our archive started.
+        "streak_start_truncated": {
+            lid: (
+                latest_entries.get(lid, {}).get("streak_start") is not None
+                and latest_entries[lid]["streak_start"] == line_first_date.get(lid)
+            )
+            for lid in line_ids
         },
     }
     STATE_PATH.write_text(
