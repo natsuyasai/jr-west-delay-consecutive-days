@@ -5,14 +5,6 @@ on:
     # 04:00 JST, before the first trains depart. Cron is in UTC (JST-9).
     - cron: "0 19 * * *"
   workflow_dispatch: {}
-  push:
-    branches:
-      - claude/daily-results-calendar-mh8kty
-    paths:
-      - .github/workflows/daily.yml
-      - scripts/fetch_delay.py
-      - scripts/generate_site.py
-      - docs/index.html
 
 permissions:
   contents: write
