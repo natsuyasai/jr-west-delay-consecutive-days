@@ -3,239 +3,298 @@
   "lines": {
     "53": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "2": {
       "delayed": true,
-      "streak": 43
+      "streak": 43,
+      "streak_start": "2026-07-10"
     },
     "3": {
       "delayed": true,
-      "streak": 43
+      "streak": 43,
+      "streak_start": "2026-07-10"
     },
     "4": {
       "delayed": true,
-      "streak": 43
+      "streak": 43,
+      "streak_start": "2026-07-10"
     },
     "5": {
       "delayed": true,
-      "streak": 5
+      "streak": 5,
+      "streak_start": "2026-08-17"
     },
     "6": {
       "delayed": true,
-      "streak": 4
+      "streak": 4,
+      "streak_start": "2026-08-18"
     },
     "7": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "8": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "9": {
       "delayed": true,
-      "streak": 4
+      "streak": 4,
+      "streak_start": "2026-08-18"
     },
     "10": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "11": {
       "delayed": true,
-      "streak": 4
+      "streak": 4,
+      "streak_start": "2026-08-18"
     },
     "12": {
       "delayed": true,
-      "streak": 4
+      "streak": 4,
+      "streak_start": "2026-08-18"
     },
     "13": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "14": {
       "delayed": true,
-      "streak": 5
+      "streak": 5,
+      "streak_start": "2026-08-17"
     },
     "15": {
       "delayed": false,
-      "streak": 0
+      "streak": 0,
+      "streak_start": null
     },
     "16": {
       "delayed": true,
-      "streak": 5
+      "streak": 5,
+      "streak_start": "2026-08-17"
     },
     "17": {
       "delayed": false,
-      "streak": 0
+      "streak": 0,
+      "streak_start": null
     },
     "18": {
       "delayed": false,
-      "streak": 0
+      "streak": 0,
+      "streak_start": null
     },
     "19": {
       "delayed": false,
-      "streak": 0
+      "streak": 0,
+      "streak_start": null
     },
     "20": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "21": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "22": {
       "delayed": true,
-      "streak": 14
+      "streak": 14,
+      "streak_start": "2026-08-08"
     },
     "48": {
       "delayed": true,
-      "streak": 3
+      "streak": 3,
+      "streak_start": "2026-08-19"
     },
     "49": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "50": {
       "delayed": false,
-      "streak": 0
+      "streak": 0,
+      "streak_start": null
     },
     "23": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "24": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "25": {
       "delayed": true,
-      "streak": 4
+      "streak": 4,
+      "streak_start": "2026-08-18"
     },
     "26": {
       "delayed": true,
-      "streak": 4
+      "streak": 4,
+      "streak_start": "2026-08-18"
     },
     "27": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "28": {
       "delayed": false,
-      "streak": 0
+      "streak": 0,
+      "streak_start": null
     },
     "29": {
       "delayed": true,
-      "streak": 17
+      "streak": 17,
+      "streak_start": "2026-08-05"
     },
     "30": {
       "delayed": true,
-      "streak": 43
+      "streak": 43,
+      "streak_start": "2026-07-10"
     },
     "31": {
       "delayed": false,
-      "streak": 0
+      "streak": 0,
+      "streak_start": null
     },
     "32": {
       "delayed": true,
-      "streak": 14
+      "streak": 14,
+      "streak_start": "2026-08-08"
     },
     "33": {
       "delayed": true,
-      "streak": 5
+      "streak": 5,
+      "streak_start": "2026-08-17"
     },
     "34": {
       "delayed": true,
-      "streak": 3
+      "streak": 3,
+      "streak_start": "2026-08-19"
     },
     "35": {
       "delayed": true,
-      "streak": 4
+      "streak": 4,
+      "streak_start": "2026-08-18"
     },
     "36": {
       "delayed": false,
-      "streak": 0
+      "streak": 0,
+      "streak_start": null
     },
     "37": {
       "delayed": true,
-      "streak": 6
+      "streak": 6,
+      "streak_start": "2026-08-16"
     },
     "38": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "39": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "40": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "41": {
       "delayed": true,
-      "streak": 43
+      "streak": 43,
+      "streak_start": "2026-07-10"
     },
     "42": {
       "delayed": true,
-      "streak": 43
+      "streak": 43,
+      "streak_start": "2026-07-10"
     },
     "43": {
       "delayed": true,
-      "streak": 43
+      "streak": 43,
+      "streak_start": "2026-07-10"
     },
     "54": {
       "delayed": true,
-      "streak": 2
+      "streak": 2,
+      "streak_start": "2026-08-20"
     },
     "55": {
       "delayed": false,
-      "streak": 0
+      "streak": 0,
+      "streak_start": null
     },
     "56": {
       "delayed": true,
-      "streak": 6
+      "streak": 6,
+      "streak_start": "2026-08-16"
     },
     "57": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "58": {
       "delayed": false,
-      "streak": 0
+      "streak": 0,
+      "streak_start": null
     },
     "59": {
       "delayed": true,
-      "streak": 2
+      "streak": 2,
+      "streak_start": "2026-08-20"
     },
     "60": {
       "delayed": false,
-      "streak": 0
+      "streak": 0,
+      "streak_start": null
     },
     "61": {
       "delayed": true,
-      "streak": 4
+      "streak": 4,
+      "streak_start": "2026-08-18"
     },
     "44": {
       "delayed": true,
-      "streak": 42
+      "streak": 42,
+      "streak_start": "2026-07-11"
     },
     "45": {
       "delayed": true,
-      "streak": 3
+      "streak": 3,
+      "streak_start": "2026-08-19"
     },
     "46": {
       "delayed": true,
-      "streak": 28
+      "streak": 28,
+      "streak_start": "2026-07-25"
     },
     "47": {
       "delayed": true,
-      "streak": 1
+      "streak": 1,
+      "streak_start": "2026-08-21"
     },
     "51": {
       "delayed": false,
-      "streak": 0
+      "streak": 0,
+      "streak_start": null
     }
   }
 }
