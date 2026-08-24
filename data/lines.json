@@ -1,0 +1,415 @@
+[
+  {
+    "line_id": 53,
+    "area_id": 1,
+    "area_name": "北陸",
+    "line_name": "北陸線",
+    "section_name": "近江塩津～敦賀"
+  },
+  {
+    "line_id": 2,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "北陸線・琵琶湖線",
+    "section_name": "近江塩津～長浜・長浜～京都"
+  },
+  {
+    "line_id": 3,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "ＪＲ京都線",
+    "section_name": ""
+  },
+  {
+    "line_id": 4,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "ＪＲ神戸線・山陽線",
+    "section_name": "大阪～姫路・姫路～上郡"
+  },
+  {
+    "line_id": 5,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "赤穂線",
+    "section_name": "相生～備前福河"
+  },
+  {
+    "line_id": 6,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "湖西線",
+    "section_name": "山科～近江塩津"
+  },
+  {
+    "line_id": 7,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "草津線",
+    "section_name": ""
+  },
+  {
+    "line_id": 8,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "奈良線",
+    "section_name": "京都～木津"
+  },
+  {
+    "line_id": 9,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "嵯峨野線",
+    "section_name": ""
+  },
+  {
+    "line_id": 10,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "おおさか東線",
+    "section_name": ""
+  },
+  {
+    "line_id": 11,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "ＪＲ宝塚線",
+    "section_name": "尼崎～新三田"
+  },
+  {
+    "line_id": 12,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "ＪＲ東西線",
+    "section_name": ""
+  },
+  {
+    "line_id": 13,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "学研都市線",
+    "section_name": ""
+  },
+  {
+    "line_id": 14,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "大阪環状線",
+    "section_name": ""
+  },
+  {
+    "line_id": 15,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "ＪＲゆめ咲線",
+    "section_name": ""
+  },
+  {
+    "line_id": 16,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "大和路線",
+    "section_name": "ＪＲ難波、天王寺～加茂"
+  },
+  {
+    "line_id": 17,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "阪和線",
+    "section_name": ""
+  },
+  {
+    "line_id": 18,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "羽衣線",
+    "section_name": ""
+  },
+  {
+    "line_id": 19,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "関西空港線",
+    "section_name": ""
+  },
+  {
+    "line_id": 20,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "和歌山線",
+    "section_name": "王寺～五条"
+  },
+  {
+    "line_id": 21,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "万葉まほろば線",
+    "section_name": ""
+  },
+  {
+    "line_id": 22,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "関西線",
+    "section_name": ""
+  },
+  {
+    "line_id": 48,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "和田岬線",
+    "section_name": ""
+  },
+  {
+    "line_id": 49,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "加古川線",
+    "section_name": ""
+  },
+  {
+    "line_id": 50,
+    "area_id": 2,
+    "area_name": "京阪神",
+    "line_name": "姫新線",
+    "section_name": "姫路～上月"
+  },
+  {
+    "line_id": 23,
+    "area_id": 3,
+    "area_name": "北近畿",
+    "line_name": "山陰線",
+    "section_name": "福知山～居組"
+  },
+  {
+    "line_id": 24,
+    "area_id": 3,
+    "area_name": "北近畿",
+    "line_name": "山陰線",
+    "section_name": "園部～福知山"
+  },
+  {
+    "line_id": 25,
+    "area_id": 3,
+    "area_name": "北近畿",
+    "line_name": "ＪＲ宝塚線・福知山線",
+    "section_name": "新三田～篠山口・篠山口～福知山"
+  },
+  {
+    "line_id": 26,
+    "area_id": 3,
+    "area_name": "北近畿",
+    "line_name": "播但線",
+    "section_name": ""
+  },
+  {
+    "line_id": 27,
+    "area_id": 3,
+    "area_name": "北近畿",
+    "line_name": "舞鶴線",
+    "section_name": ""
+  },
+  {
+    "line_id": 28,
+    "area_id": 4,
+    "area_name": "和歌山",
+    "line_name": "和歌山線",
+    "section_name": "五条～和歌山"
+  },
+  {
+    "line_id": 29,
+    "area_id": 4,
+    "area_name": "和歌山",
+    "line_name": "きのくに線",
+    "section_name": ""
+  },
+  {
+    "line_id": 30,
+    "area_id": 5,
+    "area_name": "岡山・福山",
+    "line_name": "山陽線",
+    "section_name": "上郡～糸崎"
+  },
+  {
+    "line_id": 31,
+    "area_id": 5,
+    "area_name": "岡山・福山",
+    "line_name": "瀬戸大橋線・宇野みなと線",
+    "section_name": ""
+  },
+  {
+    "line_id": 32,
+    "area_id": 5,
+    "area_name": "岡山・福山",
+    "line_name": "伯備線",
+    "section_name": "倉敷～新郷"
+  },
+  {
+    "line_id": 33,
+    "area_id": 5,
+    "area_name": "岡山・福山",
+    "line_name": "桃太郎線",
+    "section_name": ""
+  },
+  {
+    "line_id": 34,
+    "area_id": 5,
+    "area_name": "岡山・福山",
+    "line_name": "赤穂線",
+    "section_name": "東岡山～寒河"
+  },
+  {
+    "line_id": 35,
+    "area_id": 5,
+    "area_name": "岡山・福山",
+    "line_name": "津山線",
+    "section_name": ""
+  },
+  {
+    "line_id": 36,
+    "area_id": 5,
+    "area_name": "岡山・福山",
+    "line_name": "因美線",
+    "section_name": "津山～智頭"
+  },
+  {
+    "line_id": 37,
+    "area_id": 5,
+    "area_name": "岡山・福山",
+    "line_name": "姫新線",
+    "section_name": "新見～上月"
+  },
+  {
+    "line_id": 38,
+    "area_id": 5,
+    "area_name": "岡山・福山",
+    "line_name": "福塩線",
+    "section_name": "福山～府中"
+  },
+  {
+    "line_id": 39,
+    "area_id": 5,
+    "area_name": "岡山・福山",
+    "line_name": "芸備線",
+    "section_name": "新見～備後落合"
+  },
+  {
+    "line_id": 40,
+    "area_id": 6,
+    "area_name": "広島・山口",
+    "line_name": "可部線",
+    "section_name": "横川～あき亀山"
+  },
+  {
+    "line_id": 41,
+    "area_id": 6,
+    "area_name": "広島・山口",
+    "line_name": "山陽線",
+    "section_name": "糸崎～岩国"
+  },
+  {
+    "line_id": 42,
+    "area_id": 6,
+    "area_name": "広島・山口",
+    "line_name": "山陽線",
+    "section_name": "岩国～下関"
+  },
+  {
+    "line_id": 43,
+    "area_id": 6,
+    "area_name": "広島・山口",
+    "line_name": "呉線",
+    "section_name": "三原～海田市"
+  },
+  {
+    "line_id": 54,
+    "area_id": 6,
+    "area_name": "広島・山口",
+    "line_name": "山口線",
+    "section_name": ""
+  },
+  {
+    "line_id": 55,
+    "area_id": 6,
+    "area_name": "広島・山口",
+    "line_name": "宇部線",
+    "section_name": ""
+  },
+  {
+    "line_id": 56,
+    "area_id": 6,
+    "area_name": "広島・山口",
+    "line_name": "芸備線",
+    "section_name": "広島～三次"
+  },
+  {
+    "line_id": 57,
+    "area_id": 6,
+    "area_name": "広島・山口",
+    "line_name": "芸備線",
+    "section_name": "三次～備後落合"
+  },
+  {
+    "line_id": 58,
+    "area_id": 6,
+    "area_name": "広島・山口",
+    "line_name": "福塩線",
+    "section_name": "府中～塩町"
+  },
+  {
+    "line_id": 59,
+    "area_id": 6,
+    "area_name": "広島・山口",
+    "line_name": "岩徳線",
+    "section_name": ""
+  },
+  {
+    "line_id": 60,
+    "area_id": 6,
+    "area_name": "広島・山口",
+    "line_name": "小野田線",
+    "section_name": ""
+  },
+  {
+    "line_id": 61,
+    "area_id": 6,
+    "area_name": "広島・山口",
+    "line_name": "山陰線",
+    "section_name": "益田～幡生"
+  },
+  {
+    "line_id": 44,
+    "area_id": 7,
+    "area_name": "山陰",
+    "line_name": "山陰線",
+    "section_name": "諸寄～米子"
+  },
+  {
+    "line_id": 45,
+    "area_id": 7,
+    "area_name": "山陰",
+    "line_name": "因美線",
+    "section_name": "鳥取～智頭"
+  },
+  {
+    "line_id": 46,
+    "area_id": 7,
+    "area_name": "山陰",
+    "line_name": "山陰線",
+    "section_name": "米子～益田"
+  },
+  {
+    "line_id": 47,
+    "area_id": 7,
+    "area_name": "山陰",
+    "line_name": "伯備線",
+    "section_name": "新郷～伯耆大山"
+  },
+  {
+    "line_id": 51,
+    "area_id": 7,
+    "area_name": "山陰",
+    "line_name": "境線",
+    "section_name": ""
+  }
+]
