@@ -196,6 +196,8 @@
   .badge.ok { background: var(--ok-weak); color: var(--ok); }
   .streak-num { font-variant-numeric: tabular-nums; font-weight: 700; }
   .streak-num.zero { color: var(--text-muted); font-weight: 400; }
+  .streak-start { color: var(--text-muted); font-size: 0.74rem; margin-top: 0.1rem; }
+  .streak-start sup { cursor: help; color: var(--accent); }
   footer.page {
     max-width: 1080px;
     margin: 1.5rem auto 0;
@@ -459,16 +461,24 @@
       return;
     }
 
+    var anyTruncated = false;
     var rows = lines.map(function (l) {
-      var e = dayMap[String(l.line_id)];
+      var lid = String(l.line_id);
+      var e = dayMap[lid];
       var delayed = e ? e.delayed : null;
       var streak = e ? e.streak : 0;
+      var streakStart = e ? e.streak_start : null;
+      var truncated = isLatest && streak > 0 && !!(data.streak_start_truncated && data.streak_start_truncated[lid]);
+      if (truncated) anyTruncated = true;
       var badge = delayed === null
         ? '<span class="badge">不明</span>'
         : delayed
           ? '<span class="badge delay">遅延あり</span>'
           : '<span class="badge ok">遅延なし</span>';
       var streakClass = streak > 0 ? "streak-num" : "streak-num zero";
+      var streakStartHtml = streakStart
+        ? '<div class="streak-start">' + escapeHtml(streakStart) + ' から' + (truncated ? '<sup title="この期間より前のデータがないため、実際の開始日はさらに前の可能性があります">※</sup>' : '') + '</div>'
+        : "";
       return (
         '<tr>' +
         '<td class="line-name">' + escapeHtml(l.line_name) +
@@ -476,7 +486,7 @@
         '</td>' +
         '<td>' + escapeHtml(areaName(l.area_id)) + '</td>' +
         '<td>' + badge + '</td>' +
-        '<td><span class="' + streakClass + '">' + streak + '</span> 日</td>' +
+        '<td><span class="' + streakClass + '">' + streak + '</span> 日' + streakStartHtml + '</td>' +
         '</tr>'
       );
     }).join("");
@@ -485,7 +495,10 @@
       '<table class="results">' +
       '<thead><tr><th>路線</th><th>エリア</th><th>この日</th><th>連続日数</th></tr></thead>' +
       '<tbody>' + rows + '</tbody>' +
-      '</table>';
+      '</table>' +
+      (anyTruncated
+        ? '<p class="empty-note">※ データ集計を開始した ' + data.dates[0] + ' より前から遅延が連続していた可能性があり、実際の連続日数はさらに多い場合があります。</p>'
+        : "");
   }
 
   function escapeHtml(s) {

@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 HISTORY_DIR = DATA_DIR / "history"
 LINES_PATH = DATA_DIR / "lines.json"
+STATE_PATH = DATA_DIR / "state.json"
 DOCS_DIR = ROOT / "docs"
 OUTPUT_PATH = DOCS_DIR / "data.json"
 
@@ -41,6 +42,11 @@ def main() -> int:
         dates.append(d["date"])
     dates.sort()
 
+    streak_start_truncated = {}
+    if STATE_PATH.exists():
+        state = json.loads(STATE_PATH.read_text(encoding="utf-8"))
+        streak_start_truncated = state.get("streak_start_truncated", {})
+
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
     payload = {
         "generated_at": datetime.now(JST).isoformat(),
@@ -49,6 +55,10 @@ def main() -> int:
         "dates": dates,
         "latest_date": dates[-1] if dates else None,
         "delays": delays,
+        # per line_id: true if the current streak's start date is the
+        # earliest date archived for that line, i.e. the streak may have
+        # actually begun even earlier than what we can show.
+        "streak_start_truncated": streak_start_truncated,
     }
     OUTPUT_PATH.write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Wrote {OUTPUT_PATH} with {len(dates)} dates, {len(lines)} lines.")
