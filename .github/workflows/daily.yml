@@ -5,14 +5,6 @@ on:
     # 04:00 JST, before the first trains depart. Cron is in UTC (JST-9).
     - cron: "0 19 * * *"
   workflow_dispatch: {}
-  push:
-    branches:
-      - claude/daily-results-calendar-mh8kty
-    paths:
-      - .github/workflows/daily.yml
-      - scripts/fetch_delay.py
-      - scripts/generate_site.py
-      - docs/index.html
 
 permissions:
   contents: write
@@ -51,14 +43,21 @@ jobs:
             git push
           fi
 
+      # continue-on-error: until GitHub Pages is enabled (Settings > Pages >
+      # Build and deployment > Source: GitHub Actions) these steps 404; the
+      # data fetch/commit above is the important part and should still be
+      # considered a success on its own.
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        continue-on-error: true
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
+        continue-on-error: true
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
