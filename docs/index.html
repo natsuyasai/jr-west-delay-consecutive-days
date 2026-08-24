@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JR西日本 遅延連続日数</title>
+<meta name="description" content="JR西日本の各路線について、遅延証明書が発行された連続日数を毎朝自動集計します。">
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #eef0f4;
+    --border: #dde1e7;
+    --text: #1c2128;
+    --text-muted: #5b6472;
+    --accent: #2563eb;
+    --accent-weak: #dbe6fd;
+    --danger: #d1373f;
+    --danger-weak: #fbe4e5;
+    --ok: #1a7f4e;
+    --ok-weak: #e2f5ea;
+    --shadow: 0 1px 2px rgba(20, 24, 31, 0.06), 0 1px 8px rgba(20, 24, 31, 0.05);
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c;
+      --surface: #1b1f26;
+      --surface-2: #232830;
+      --border: #2e343d;
+      --text: #e7eaee;
+      --text-muted: #9aa4b2;
+      --accent: #6d9bff;
+      --accent-weak: #22314f;
+      --danger: #ff8085;
+      --danger-weak: #3a2226;
+      --ok: #6fd6a3;
+      --ok-weak: #1c3329;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 10px rgba(0, 0, 0, 0.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP", system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+  }
+  body { padding: 0 0 4rem; }
+  a { color: var(--accent); }
+  header.page {
+    padding: 2rem 1.25rem 1.25rem;
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+  header.page h1 {
+    margin: 0 0 0.35rem;
+    font-size: 1.5rem;
+    letter-spacing: 0.01em;
+  }
+  header.page p.lead {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+  }
+  main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 1.25rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+  @media (min-width: 880px) {
+    main { grid-template-columns: 340px minmax(0, 1fr); align-items: start; }
+  }
+  section.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1.1rem 1.1rem 1.25rem;
+  }
+  section.card h2 {
+    font-size: 1rem;
+    margin: 0 0 0.75rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  #calendar-date-label { color: var(--text-muted); font-weight: 400; font-size: 0.85rem; }
+
+  /* Calendar */
+  .cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+  }
+  .cal-nav button {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    border-radius: 8px;
+    width: 2rem;
+    height: 2rem;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .cal-nav button:disabled { opacity: 0.35; cursor: default; }
+  .cal-nav .cal-month { font-weight: 600; font-size: 0.95rem; }
+  table.cal { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  table.cal th {
+    font-weight: 500;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    padding-bottom: 0.35rem;
+  }
+  table.cal td { text-align: center; padding: 2px; }
+  .cal-day {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .cal-day[disabled] { color: var(--text-muted); opacity: 0.32; cursor: default; }
+  .cal-day.has-data { background: var(--surface-2); }
+  .cal-day.has-delay { background: var(--danger-weak); color: var(--danger); font-weight: 600; }
+  .cal-day.selected { border-color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+  .cal-day.today::after {
+    content: "";
+    position: absolute;
+    bottom: 4px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .legend { display: flex; gap: 1rem; margin-top: 0.75rem; font-size: 0.78rem; color: var(--text-muted); flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .swatch { width: 0.7rem; height: 0.7rem; border-radius: 3px; display: inline-block; }
+  .swatch.has-delay { background: var(--danger-weak); box-shadow: inset 0 0 0 1px var(--danger); }
+  .swatch.has-data { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border); }
+
+  /* Results */
+  .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
+  .filters select {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+  }
+  .summary-row { display: flex; gap: 1rem; margin-bottom: 0.85rem; flex-wrap: wrap; }
+  .stat { background: var(--surface-2); border-radius: 8px; padding: 0.55rem 0.85rem; font-size: 0.82rem; color: var(--text-muted); }
+  .stat b { color: var(--text); font-size: 1rem; display: block; }
+  table.results { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+  table.results th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    padding: 0 0.6rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  table.results td {
+    padding: 0.55rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  table.results tr:last-child td { border-bottom: none; }
+  table.results td.line-name { font-weight: 600; }
+  table.results td.section { color: var(--text-muted); font-size: 0.78rem; }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .badge.delay { background: var(--danger-weak); color: var(--danger); }
+  .badge.ok { background: var(--ok-weak); color: var(--ok); }
+  .streak-num { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .streak-num.zero { color: var(--text-muted); font-weight: 400; }
+  footer.page {
+    max-width: 1080px;
+    margin: 1.5rem auto 0;
+    padding: 0 1.25rem;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+  }
+  .empty-note { color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>JR西日本 遅延連続日数</h1>
+  <p class="lead">各路線の「遅延証明書」発行状況をもとに、遅延が連続して発生している日数を毎朝始発前に自動集計しています。</p>
+</header>
+<main>
+  <section class="card" aria-label="カレンダー">
+    <h2>カレンダー <span id="calendar-date-label"></span></h2>
+    <div class="cal-nav">
+      <button id="cal-prev" type="button" aria-label="前の月">‹</button>
+      <span class="cal-month" id="cal-month-label"></span>
+      <button id="cal-next" type="button" aria-label="次の月">›</button>
+    </div>
+    <table class="cal" aria-hidden="false">
+      <thead>
+        <tr>
+          <th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th>
+        </tr>
+      </thead>
+      <tbody id="cal-body"></tbody>
+    </table>
+    <div class="legend">
+      <span><i class="swatch has-delay"></i>遅延あり</span>
+      <span><i class="swatch has-data"></i>データあり(遅延なし)</span>
+    </div>
+  </section>
+
+  <section class="card" aria-label="選択日の結果">
+    <h2 id="results-title">結果</h2>
+    <div class="filters">
+      <select id="area-filter" aria-label="エリアで絞り込み">
+        <option value="all">すべてのエリア</option>
+      </select>
+    </div>
+    <div class="summary-row" id="summary-row"></div>
+    <div id="results-container">
+      <p class="empty-note">読み込み中です…</p>
+    </div>
+  </section>
+</main>
+<footer class="page">
+  <p id="generated-at"></p>
+  <p>データ出典: <a href="https://delay.trafficinfo.westjr.co.jp/" target="_blank" rel="noopener">JR西日本 遅延証明書</a>。「遅延あり」は当該路線でその日に遅延証明書が発行されたことを示します。</p>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var state = {
+    data: null,
+    selectedDate: null,
+    areaFilter: "all",
+    calendarMonth: null // {year, month(0-11)}
+  };
+
+  function byId(id) { return document.getElementById(id); }
+
+  function pad2(n) { return String(n).padStart(2, "0"); }
+
+  function toDateStr(year, month, day) {
+    return year + "-" + pad2(month + 1) + "-" + pad2(day);
+  }
+
+  function parseDateStr(s) {
+    var parts = s.split("-").map(Number);
+    return { year: parts[0], month: parts[1] - 1, day: parts[2] };
+  }
+
+  function jstTodayStr() {
+    var now = new Date();
+    var jst = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+    return toDateStr(jst.getFullYear(), jst.getMonth(), jst.getDate());
+  }
+
+  function init(data) {
+    state.data = data;
+
+    var areaSelect = byId("area-filter");
+    data.areas.forEach(function (a) {
+      var opt = document.createElement("option");
+      opt.value = String(a.area_id);
+      opt.textContent = a.display_name;
+      areaSelect.appendChild(opt);
+    });
+    areaSelect.addEventListener("change", function () {
+      state.areaFilter = areaSelect.value;
+      renderResults();
+    });
+
+    var params = new URLSearchParams(location.search);
+    var initialDate = params.get("date");
+    if (!initialDate || data.dates.indexOf(initialDate) === -1) {
+      initialDate = data.latest_date;
+    }
+    state.selectedDate = initialDate;
+
+    if (initialDate) {
+      var p = parseDateStr(initialDate);
+      state.calendarMonth = { year: p.year, month: p.month };
+    } else {
+      var t = new Date();
+      state.calendarMonth = { year: t.getFullYear(), month: t.getMonth() };
+    }
+
+    byId("cal-prev").addEventListener("click", function () { shiftMonth(-1); });
+    byId("cal-next").addEventListener("click", function () { shiftMonth(1); });
+
+    if (data.generated_at) {
+      var gen = new Date(data.generated_at);
+      byId("generated-at").textContent = "最終更新: " + gen.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+    }
+
+    renderCalendar();
+    renderResults();
+  }
+
+  function shiftMonth(delta) {
+    var m = state.calendarMonth.month + delta;
+    var y = state.calendarMonth.year;
+    if (m < 0) { m = 11; y -= 1; }
+    if (m > 11) { m = 0; y += 1; }
+    state.calendarMonth = { year: y, month: m };
+    renderCalendar();
+  }
+
+  function renderCalendar() {
+    var data = state.data;
+    var body = byId("cal-body");
+    body.innerHTML = "";
+
+    var y = state.calendarMonth.year, m = state.calendarMonth.month;
+    byId("cal-month-label").textContent = y + "年 " + (m + 1) + "月";
+
+    var firstWeekday = new Date(y, m, 1).getDay();
+    var daysInMonth = new Date(y, m + 1, 0).getDate();
+    var todayStr = jstTodayStr();
+
+    var minDate = data.dates.length ? data.dates[0] : null;
+    var maxDate = data.dates.length ? data.dates[data.dates.length - 1] : null;
+
+    // disable prev/next once the displayed month is outside the range of months with data
+    byId("cal-prev").disabled = !!minDate && (y < parseInt(minDate.slice(0, 4), 10) ||
+      (y === parseInt(minDate.slice(0, 4), 10) && m < parseInt(minDate.slice(5, 7), 10) - 1));
+    byId("cal-next").disabled = !!maxDate && (y > parseInt(maxDate.slice(0, 4), 10) ||
+      (y === parseInt(maxDate.slice(0, 4), 10) && m > parseInt(maxDate.slice(5, 7), 10) - 1));
+
+    var row = document.createElement("tr");
+    for (var i = 0; i < firstWeekday; i++) {
+      row.appendChild(document.createElement("td"));
+    }
+
+    for (var day = 1; day <= daysInMonth; day++) {
+      var dateStr = toDateStr(y, m, day);
+      var td = document.createElement("td");
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cal-day";
+      btn.textContent = String(day);
+
+      var hasData = Object.prototype.hasOwnProperty.call(data.delays, dateStr);
+      if (hasData) {
+        var dayMap = data.delays[dateStr];
+        var hasDelay = filteredLines().some(function (line) {
+          var entry = dayMap[String(line.line_id)];
+          return entry && entry.delayed;
+        });
+        btn.classList.add("has-data");
+        if (hasDelay) btn.classList.add("has-delay");
+        btn.addEventListener("click", function (ds) {
+          return function () {
+            state.selectedDate = ds;
+            renderCalendar();
+            renderResults();
+          };
+        }(dateStr));
+      } else {
+        btn.disabled = true;
+      }
+
+      if (dateStr === todayStr) btn.classList.add("today");
+      if (dateStr === state.selectedDate) btn.classList.add("selected");
+
+      td.appendChild(btn);
+      row.appendChild(td);
+
+      if ((firstWeekday + day) % 7 === 0 || day === daysInMonth) {
+        body.appendChild(row);
+        row = document.createElement("tr");
+      }
+    }
+    if (row.children.length) {
+      while (row.children.length < 7) row.appendChild(document.createElement("td"));
+      body.appendChild(row);
+    }
+  }
+
+  function filteredLines() {
+    var data = state.data;
+    if (state.areaFilter === "all") return data.lines;
+    return data.lines.filter(function (l) { return String(l.area_id) === state.areaFilter; });
+  }
+
+  function areaName(areaId) {
+    var a = state.data.areas.find(function (a) { return a.area_id === areaId; });
+    return a ? a.display_name : "";
+  }
+
+  function renderResults() {
+    var data = state.data;
+    var container = byId("results-container");
+    var titleEl = byId("results-title");
+    var labelEl = byId("calendar-date-label");
+    var summaryEl = byId("summary-row");
+
+    if (!data.dates.length || !state.selectedDate) {
+      titleEl.textContent = "結果";
+      labelEl.textContent = "";
+      summaryEl.innerHTML = "";
+      container.innerHTML = '<p class="empty-note">まだデータがありません。初回の自動実行をお待ちください。</p>';
+      return;
+    }
+
+    var dateStr = state.selectedDate;
+    var isLatest = dateStr === data.latest_date;
+    titleEl.textContent = dateStr + " の結果" + (isLatest ? "(最新)" : "");
+    labelEl.textContent = "選択中: " + dateStr;
+
+    var dayMap = data.delays[dateStr] || {};
+    var lines = filteredLines().slice().sort(function (a, b) {
+      var ea = dayMap[String(a.line_id)] || { streak: 0, delayed: false };
+      var eb = dayMap[String(b.line_id)] || { streak: 0, delayed: false };
+      if (eb.streak !== ea.streak) return eb.streak - ea.streak;
+      return a.area_id - b.area_id || a.line_id - b.line_id;
+    });
+
+    var delayedCount = 0, maxStreak = 0;
+    lines.forEach(function (l) {
+      var e = dayMap[String(l.line_id)];
+      if (e && e.delayed) delayedCount++;
+      if (e && e.streak > maxStreak) maxStreak = e.streak;
+    });
+
+    summaryEl.innerHTML =
+      '<div class="stat"><b>' + lines.length + '</b>対象路線</div>' +
+      '<div class="stat"><b>' + delayedCount + '</b>この日 遅延あり</div>' +
+      '<div class="stat"><b>' + maxStreak + '</b>最長連続日数</div>';
+
+    if (!lines.length) {
+      container.innerHTML = '<p class="empty-note">該当する路線がありません。</p>';
+      return;
+    }
+
+    var rows = lines.map(function (l) {
+      var e = dayMap[String(l.line_id)];
+      var delayed = e ? e.delayed : null;
+      var streak = e ? e.streak : 0;
+      var badge = delayed === null
+        ? '<span class="badge">不明</span>'
+        : delayed
+          ? '<span class="badge delay">遅延あり</span>'
+          : '<span class="badge ok">遅延なし</span>';
+      var streakClass = streak > 0 ? "streak-num" : "streak-num zero";
+      return (
+        '<tr>' +
+        '<td class="line-name">' + escapeHtml(l.line_name) +
+          (l.section_name ? '<div class="section">' + escapeHtml(l.section_name) + '</div>' : '') +
+        '</td>' +
+        '<td>' + escapeHtml(areaName(l.area_id)) + '</td>' +
+        '<td>' + badge + '</td>' +
+        '<td><span class="' + streakClass + '">' + streak + '</span> 日</td>' +
+        '</tr>'
+      );
+    }).join("");
+
+    container.innerHTML =
+      '<table class="results">' +
+      '<thead><tr><th>路線</th><th>エリア</th><th>この日</th><th>連続日数</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+      '</table>';
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  fetch("./data.json", { cache: "no-store" })
+    .then(function (r) {
+      if (!r.ok) throw new Error("data.json fetch failed: " + r.status);
+      return r.json();
+    })
+    .then(init)
+    .catch(function (err) {
+      byId("results-container").innerHTML =
+        '<p class="empty-note">データの読み込みに失敗しました。しばらくしてから再度お試しください。</p>';
+      console.error(err);
+    });
+})();
+</script>
+</body>
+</html>
